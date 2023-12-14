@@ -1,17 +1,26 @@
+const { error, clear } = require("console");
+
+const fs = require("fs").promises
+
+
 class ProductManager {
     static ultiId = 0
 
-    constructor(){
+    constructor(path) {
         this.products = [];
+        this.path = path
     };
-    
-    addProduct(title, description, price, img, code, stock){
-        if (!title || !description || !price || !img || !code || !stock ){
+
+    async addProduct(nuevoObjeto) {
+
+        let { title, description, price, img, code, stock } = nuevoObjeto
+
+        if (!title || !description || !price || !img || !code || !stock) {
             console.log("Todos los campos son hobligatorios para continuar ")
             return
         }
 
-        if (this.products.some(item => item.code === code)){
+        if (this.products.some(item => item.code === code)) {
             console.log("El codigo tiene que ser unico")
             return
         }
@@ -28,52 +37,157 @@ class ProductManager {
 
         this.products.push(newProduct)
 
+        await this.guardarArchivo(this.products)
+
     }
 
-    getProducts(){
+    getProducts() {
         console.log(this.products)
     }
 
-    getProductById(id){
-        const product = this.products.find(item => item.id === id)
-        if (!product){
-            console.log("Producto no encontrado")
-        } else {
-            console.log("Producto encontrado con éxito")
+    async getProductById(id) {
+        try {
+            const arrayProductos = await this.leerArchivo()
+            const buscar = arrayProductos.find(item => item.id === id)
+            if (!buscar) {
+                console.log("Producto no encontrado")
+            } else {
+                console.log("Producto encontrado con éxito")
+                return buscar
+            }
+
+        } catch {
+            console.log("error al leer el archivo", error)
         }
-        return product
+
     }
-    
+
+    async leerArchivo() {
+        try {
+            const respuesta = await fs.readFile(this.path, "utf-8")
+            const arrayProductos = JSON.parse(respuesta)
+            return arrayProductos
+
+        } catch (error) {
+            console.log("Error al leer el archivo", error)
+        }
+    }
+
+    async guardarArchivo(arrayProductos) {
+        try {
+            await fs.writeFile(this.path, JSON.stringify(arrayProductos, null, 2))
+
+        } catch (error) {
+            console.log("Error al guardar el archivo", error)
+        }
+    }
+
+
+    async updateProduct(id, productoActualizado) {
+        try {
+            const arrayProductos = await this.leerArchivo()
+            const index = arrayProductos.findIndex(item => item.id === id)
+            if (index !== -1) {
+                arrayProductos.splice(index, 1, productoActualizado)
+                await this.guardarArchivo(arrayProductos)
+            } else {
+                console.log("No se encontro el producto")
+            }
+        } catch (error) {
+            console.log("Error al actualizar el producto", error)
+        }
+    }
+
+    async borrarProducto(id) {
+        try {
+            const arrayProductos = await this.leerArchivo()
+            const index = arrayProductos.findIndex(item => item.id === id)
+            if (index !== -1) {
+                arrayProductos.splice(index, 1)
+                await this.guardarArchivo(arrayProductos)
+            } else {
+                console.log("No se encontro el producto")
+            }
+        } catch (error) {
+            console.log("Error al eliminar el producto", error)
+        }
+    }
+
 }
 
-const manager = new ProductManager()
+const manager = new ProductManager("./productos.json")
 
 manager.getProducts()
 
-manager.addProduct("product1", "detalles product1", 80, "imagen product1", "0001", 18)
+const videoJuego1 = {
+    title: "Zelda",
+    description: "Ultima dentrega del Zelda",
+    price: 100,
+    img: "imagen de Link",
+    code: "0001",
+    stock: 80
+}
+
+const videoJuego2 = {
+    title: "Call of duty",
+    description: "Ultima parche implementado",
+    price: 120,
+    img: "imagen de portada",
+    code: "0002",
+    stock: 200
+}
+
+const chequeoValidaciones = {
+    //sin tittle
+    description: "Ultima parche implementado",
+    price: 120,
+    img: "imagen de portada",
+    code: "0002",
+    stock: 200
+}
+
+manager.addProduct(videoJuego1)
+manager.addProduct(videoJuego2)
 
 //chequeando validaciones 
+//mismo code
+manager.addProduct(videoJuego1)
 
-manager.addProduct("product1", "detalles product1", 80, "imagen product1", "0001", 18)
+//  que todos los campos se cumplan
 
-manager.addProduct("product1", "detalles product1", "imagen product1", "0001",)
-
-//agregar nuevos productos
-
-manager.addProduct("product2", "detalles product2", 150, "imagen product2", "0002", 5)
-manager.addProduct("product3", "detalles product3", 10, "imagen product3", "0003", 2)
-manager.addProduct("product4", "detalles product4", 15, "imagen product4", "0004", 1)
-manager.addProduct("product5", "detalles product5", 90, "imagen product5", "0005", 8)
+manager.addProduct(chequeoValidaciones)
 
 manager.getProducts()
 
-//chequear getProductById
+async function testBusquedaId() {
+    const buscado = await manager.getProductById(2)
+    console.log(buscado)
+}
 
-//producto encontrado con éxito 
-manager.getProductById(3)
+testBusquedaId()
 
-//producto no encontrado
-manager.getProductById(8)
+const videojuego3 = {
+    id: 1,
+    title: "Super Mario",
+    description: "El nuevo mundo de Mario",
+    price: 90,
+    img: "imagen de Mario",
+    code: "0001",
+    stock: 80
+}
+
+async function testActualizar() {
+    await manager.updateProduct(1, videojuego3)
+}
+
+testActualizar()
+
+
+async function testBorrar() {
+    await manager.borrarProducto(1)
+}
+
+testBorrar()
 
 
 

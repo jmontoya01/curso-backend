@@ -1,0 +1,11 @@
+[
+  {
+    "id": 2,
+    "title": "Call of duty",
+    "description": "Ultima parche implementado",
+    "price": 120,
+    "img": "imagen de portada",
+    "code": "0002",
+    "stock": 200
+  }
+]
